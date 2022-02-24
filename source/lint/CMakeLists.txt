@@ -56,6 +56,6 @@ if(ENABLE_SPIRV_TOOLS_INSTALL)
   install(EXPORT SPIRV-Tools-lintTargets FILE SPIRV-Tools-lintTargets.cmake
   	DESTINATION ${PACKAGE_DIR})
 
-  spvtools_generate_config_file(SPIRV-Tools-lint)
+  # spvtools_generate_config_file(SPIRV-Tools-lint)
   install(FILES ${CMAKE_BINARY_DIR}/SPIRV-Tools-lintConfig.cmake DESTINATION ${PACKAGE_DIR})
 endif(ENABLE_SPIRV_TOOLS_INSTALL)

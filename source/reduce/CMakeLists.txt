@@ -111,6 +111,6 @@ if(ENABLE_SPIRV_TOOLS_INSTALL)
   install(EXPORT SPIRV-Tools-reduceTargets FILE SPIRV-Tools-reduceTarget.cmake
   	DESTINATION ${PACKAGE_DIR})
 
-  spvtools_generate_config_file(SPIRV-Tools-reduce)
+  # spvtools_generate_config_file(SPIRV-Tools-reduce)
   install(FILES ${CMAKE_BINARY_DIR}/SPIRV-Tools-reduceConfig.cmake DESTINATION ${PACKAGE_DIR})
 endif(ENABLE_SPIRV_TOOLS_INSTALL)

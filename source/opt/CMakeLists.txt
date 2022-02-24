@@ -267,6 +267,6 @@ if(ENABLE_SPIRV_TOOLS_INSTALL)
   install(EXPORT SPIRV-Tools-optTargets FILE SPIRV-Tools-optTargets.cmake
   	DESTINATION ${PACKAGE_DIR})
 
-  spvtools_generate_config_file(SPIRV-Tools-opt)
+  # spvtools_generate_config_file(SPIRV-Tools-opt)
   install(FILES ${CMAKE_BINARY_DIR}/SPIRV-Tools-optConfig.cmake DESTINATION ${PACKAGE_DIR})
 endif(ENABLE_SPIRV_TOOLS_INSTALL)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 2.8.12)
+cmake_minimum_required(VERSION 3.15)
 if (POLICY CMP0048)
   cmake_policy(SET CMP0048 NEW)
 endif()
@@ -25,13 +25,33 @@ endif()
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 project(spirv-tools)
+set(CMAKE_INSTALL_PREFIX "C:/Users/wrose/Documents/development/SPIRV-Tools")
+
 enable_testing()
 set(SPIRV_TOOLS "SPIRV-Tools")
 
 include(GNUInstallDirs)
+include(CheckCXXCompilerFlag)
+
+check_cxx_compiler_flag(-Wextra-semi COMPILER_SUPPORTS_EXTRA_SEMI_WARNING)
+
+if(NOT COMMAND find_host_package)
+  macro(find_host_package)
+    find_package(${ARGN})
+  endmacro()
+endif()
+if(NOT COMMAND find_host_program)
+  macro(find_host_program)
+    find_program(${ARGN})
+  endmacro()
+endif()
+
+# Tests require Python3
+find_host_package (Python3 COMPONENTS Interpreter Development REQUIRED)
+
+
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(CMAKE_CXX_STANDARD 11)
 
 option(ENABLE_RTTI "Enables RTTI" OFF)
 option(SPIRV_ALLOW_TIMERS "Allow timers via clock_gettime on supported platforms" ON)
@@ -166,25 +186,32 @@ endif()
 # Ideally, all of these will go away - see https://github.com/KhronosGroup/SPIRV-Tools/issues/3909.
 option(ENABLE_EXCEPTIONS_ON_MSVC "Build SPIRV-TOOLS with c++ exceptions enabled in MSVC" ON)
 option(SPIRV_TOOLS_BUILD_STATIC "Build ${SPIRV_TOOLS}-static target. ${SPIRV_TOOLS} will alias to ${SPIRV_TOOLS}-static or ${SPIRV_TOOLS}-shared based on BUILD_SHARED_LIBS" ON)
-if(SPIRV_TOOLS_BUILD_STATIC)
-  set(SPIRV_TOOLS_FULL_VISIBILITY ${SPIRV_TOOLS}-static)
-  set(SPIRV_TOOLS_LIBRARY_TYPE "STATIC")
-else(SPIRV_TOOLS_BUILD_STATIC)
-  set(SPIRV_TOOLS_FULL_VISIBILITY ${SPIRV_TOOLS})
-  if (NOT DEFINED SPIRV_TOOLS_LIBRARY_TYPE)
-      if(BUILD_SHARED_LIBS)
-        set(SPIRV_TOOLS_LIBRARY_TYPE "SHARED")
-      else()
-        set(SPIRV_TOOLS_LIBRARY_TYPE "STATIC")
-      endif()
-  endif()
-endif(SPIRV_TOOLS_BUILD_STATIC)
+#if(SPIRV_TOOLS_BUILD_STATIC)
+#  set(SPIRV_TOOLS_FULL_VISIBILITY ${SPIRV_TOOLS})
+#  set(SPIRV_TOOLS_LIBRARY_TYPE "STATIC")
+#else(SPIRV_TOOLS_BUILD_STATIC)
+#  set(SPIRV_TOOLS_FULL_VISIBILITY ${SPIRV_TOOLS})
+#  if (NOT DEFINED SPIRV_TOOLS_LIBRARY_TYPE)
+#      if(BUILD_SHARED_LIBS)
+#        set(SPIRV_TOOLS_LIBRARY_TYPE "SHARED")
+#      else()
+#        set(SPIRV_TOOLS_LIBRARY_TYPE "STATIC")
+#      endif()
+#  endif()
+#endif(SPIRV_TOOLS_BUILD_STATIC)
+
+set(SPIRV_TOOLS_FULL_VISIBILITY ${SPIRV_TOOLS})
 
 function(spvtools_default_compile_options TARGET)
   target_compile_options(${TARGET} PRIVATE ${SPIRV_WARNINGS})
+  target_compile_features(${TARGET} PUBLIC cxx_std_11)
+
+  if (COMPILER_SUPPORTS_EXTRA_SEMI_WARNING)
+      add_compile_options("-Wextra-semi")
+  endif()
 
   if (${COMPILER_IS_LIKE_GNU})
-    target_compile_options(${TARGET} PRIVATE -std=c++11 -fno-exceptions)
+    target_compile_options(${TARGET} PRIVATE -fno-exceptions)
     target_compile_options(${TARGET} PRIVATE
       -Wall -Wextra -Wno-long-long -Wshadow -Wundef -Wconversion
       -Wno-sign-conversion)
@@ -231,19 +258,8 @@ function(spvtools_default_compile_options TARGET)
   endif()
 endfunction()
 
-if(NOT COMMAND find_host_package)
-  macro(find_host_package)
-    find_package(${ARGN})
-  endmacro()
-endif()
-if(NOT COMMAND find_host_program)
-  macro(find_host_program)
-    find_program(${ARGN})
-  endmacro()
-endif()
 
-# Tests require Python3
-find_host_package(PythonInterp 3 REQUIRED)
+
 
 # Check for symbol exports on Linux.
 # At the moment, this check will fail on the OSX build machines for the Android NDK.
@@ -252,7 +268,7 @@ if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
   macro(spvtools_check_symbol_exports TARGET)
     if (NOT "${SPIRV_SKIP_TESTS}")
       add_test(NAME spirv-tools-symbol-exports-${TARGET}
-               COMMAND ${PYTHON_EXECUTABLE}
+               COMMAND ${Python3_EXECUTABLE}
                ${spirv-tools_SOURCE_DIR}/utils/check_symbol_exports.py "$<TARGET_FILE:${TARGET}>")
     endif()
   endmacro()
@@ -275,14 +291,14 @@ if(ENABLE_SPIRV_TOOLS_INSTALL)
     endmacro()
   endif()
 
-  macro(spvtools_generate_config_file TARGET)
-    file(WRITE ${CMAKE_BINARY_DIR}/${TARGET}Config.cmake
-      "include(CMakeFindDependencyMacro)\n"
-      "find_dependency(${SPIRV_TOOLS})\n"
-      "include(\${CMAKE_CURRENT_LIST_DIR}/${TARGET}Targets.cmake)\n"
-      "set(${TARGET}_LIBRARIES ${TARGET})\n"
-      "get_target_property(${TARGET}_INCLUDE_DIRS ${TARGET} INTERFACE_INCLUDE_DIRECTORIES)\n")
-  endmacro()
+#  macro(spvtools_generate_config_file TARGET)
+#    file(WRITE ${CMAKE_BINARY_DIR}/${TARGET}Config.cmake
+#      "include(CMakeFindDependencyMacro)\n"
+#      "find_dependency(${SPIRV_TOOLS})\n"
+#      "include(\${CMAKE_CURRENT_LIST_DIR}/${TARGET}Targets.cmake)\n"
+#      "set(${TARGET}_LIBRARIES ${TARGET})\n"
+#      "get_target_property(${TARGET}_INCLUDE_DIRS ${TARGET} INTERFACE_INCLUDE_DIRECTORIES)\n")
+#  endmacro()
 endif()
 
 # Defaults to OFF if the user didn't set it.
@@ -314,22 +330,8 @@ macro(spvtools_pch SRCS PCHPREFIX)
   endif()
 endmacro(spvtools_pch)
 
-add_subdirectory(external)
 
-# Warning about extra semi-colons.
-#
-# This is not supported on all compilers/versions. so enabling only
-# for clang, since that works for all versions that our bots run.
-#
-# This is intentionally done after adding the external subdirectory,
-# so we don't enforce this flag on our dependencies, some of which do
-# not pass it.
-#
-# If the minimum version of CMake supported is updated to 3.0 or
-# later, then check_cxx_compiler_flag could be used instead.
-if("${CMAKE_CXX_COMPILER_ID}" MATCHES "Clang")
-    add_compile_options("-Wextra-semi")
-endif()
+add_subdirectory(external)
 
 add_subdirectory(source)
 add_subdirectory(tools)
@@ -351,7 +353,7 @@ endif(ENABLE_SPIRV_TOOLS_INSTALL)
 
 if (NOT "${SPIRV_SKIP_TESTS}")
   add_test(NAME spirv-tools-copyrights
-           COMMAND ${PYTHON_EXECUTABLE} utils/check_copyright.py
+           COMMAND ${Python3_EXECUTABLE} utils/check_copyright.py
            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
@@ -392,3 +394,24 @@ if (ENABLE_SPIRV_TOOLS_INSTALL)
     DESTINATION
       ${CMAKE_INSTALL_LIBDIR}/pkgconfig)
 endif()
+
+
+
+
+install(
+    TARGETS SPIRV-Tools  EXPORT SPIRV-Tools-config
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}/
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/
+)
+
+install(
+    EXPORT SPIRV-Tools-config
+    NAMESPACE SPIRV-Tools::
+    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/SPIRV-Tools
+)
+
+
+
+
+
